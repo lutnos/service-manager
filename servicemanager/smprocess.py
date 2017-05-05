@@ -31,6 +31,8 @@ def _is_system_or_smserver_or_test_process(pid):
     if _is_init_process(pid):
         return True
 
+    args = _ps_args(pid)
+
     if _is_smserver_process(pid):
         return True
 
@@ -64,42 +66,44 @@ def _is_pid_in_list(pid, command):
             return True
     return False
 
+
 def _is_init_process(pid):
     command = "ps -eo ppid,pid,etime,rss,args | grep 'init --user' | grep -v 'grep init --user' | grep -v indicator | awk '{print $2 }'"
     return _is_pid_in_list(pid, command)
 
 
-def _is_smserver_process(pid):
-    command = "ps -eo pid,args | grep %d | grep 'smserver\.py' | awk '{print $1}'" % pid
-    return _is_pid_in_list(pid, command)
+def _ps_args(pid):
+    command = "ps -eo pid,args | grep '^%d ' awk '{print $2}'" % pid
+    ps_command = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    ps_output = ps_command.stdout.read()
+    return ps_output.strip()
+
+def _is_smserver_process(args):
+    return args.find("smserver.py") != -1;
 
 
 def _is_pytest_process(pid):
-    command = "ps -eo pid,args | grep %d | grep 'py\.test' | awk '{print $1}'" % pid
-    return _is_pid_in_list(pid, command)
+    return args.find("py.test") != -1;
 
 
 def _is_pycharm_test_process(pid):
-    command = "ps -eo pid,args | grep %d | grep 'pytestrunner\.py' | awk '{print $1}'" % pid
-    return _is_pid_in_list(pid, command)
+    return args.find("pytestrunner.py") != -1;
 
 
 def _is_pycharm_process(pid):
-    command = "ps -eo pid,args | grep %d | grep 'pydevd\.py' | awk '{print $1}'" % pid
-    return _is_pid_in_list(pid, command)
+    return args.find("pydevd.py") != -1;
 
 
 def _is_pycharm_related_process(pid):
-    command = "ps -eo pid,args | grep %d | grep 'pycharm' | awk '{print $1}'" % pid
-    return _is_pid_in_list(pid, command)
+    return args.find("pycharm") != -1;
+
 
 def _is_upstart_process(pid):
-    command = "ps -eo pid,args | grep %d | grep 'upstart' | awk '{print $1}'" % pid
-    return _is_pid_in_list(pid, command)
+    return args.find("upstart") != -1;
+
 
 def _is_systemd_process(pid):
-    command = "ps -eo pid,args | grep %d | grep 'systemd --user' | awk '{print $1}'" % pid
-    return _is_pid_in_list(pid, command)
+    return args.find("systemd --user") != -1;
 
 
 def kill_by_test_id(context, force):
